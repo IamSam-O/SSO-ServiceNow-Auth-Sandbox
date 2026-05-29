@@ -13,13 +13,6 @@ as the Identity Provider.
 > in a production environment or with real credentials, sensitive data, or live
 > systems.
 
-> **AI-assisted development:** Claude AI (Anthropic) was used as a development
-> tool during the construction of this project. The developer was actively involved
-> throughout, with Claude assisting in implementation, code generation, and
-> documentation. All components were tested iteratively during development. As with
-> any AI-assisted work, independent review of code and configuration is recommended
-> before use.
-
 ---
 
 ## Project structure
