@@ -99,6 +99,13 @@ to reconnect without re-authenticating.
 
 ## Quick start
 
+> **Start order is critical.** Always start `sso-infrastructure` first — it
+> creates the `sso-net` Docker network and the postgres/redis services that
+> Authentik depends on. The tunnel container will fail immediately if `sso-net`
+> does not exist. Within `sso-infrastructure`, Docker Compose handles internal
+> ordering automatically via healthchecks — `authentik-server` and
+> `authentik-worker` will not start until postgres and redis are healthy.
+
 ```powershell
 # 1 — configure the infrastructure environment
 Copy-Item sso-infrastructure\.env.example sso-infrastructure\.env
@@ -108,7 +115,7 @@ Copy-Item sso-infrastructure\.env.example sso-infrastructure\.env
 cd sso-infrastructure
 docker compose up -d
 
-# 3 — start your chosen tunnel
+# 3 — start your chosen tunnel (only after sso-infrastructure is healthy)
 cd ..\sso-tunnel\ngrok        # or cloudflare
 docker compose up -d
 ```

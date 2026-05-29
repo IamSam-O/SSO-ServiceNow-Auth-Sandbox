@@ -138,6 +138,13 @@ openssl rand -base64 36
 
 ### Start sso-infrastructure
 
+> **Start order is critical.** `sso-infrastructure` must always be started
+> before any tunnel container. The tunnel projects depend on the `sso-net`
+> network which is created by `sso-infrastructure` — they will fail immediately
+> if it does not exist. Within `sso-infrastructure`, Docker Compose manages
+> internal ordering automatically via healthchecks — `authentik-server` and
+> `authentik-worker` will not start until postgres and redis report healthy.
+
 ```powershell
 cd sso-infrastructure
 docker compose up -d
@@ -1016,8 +1023,8 @@ An **Authentik** button should appear on the login page.
 ### 7.3 Expected flow
 
 1. Browser redirects to Authentik login at your public URL
-2. Log in with an LDAP user (e.g. `jane.doe` / `Password1!`)
-3. Authentik validates credentials against OpenLDAP
+2. Log in with your chosen user (e.g. `akadmin` or an imported user with roles)
+3. Authentik validates credentials
 4. SAML assertion POSTed to ServiceNow ACS URL (`/navpage.do`)
 5. ServiceNow matches NameID against `user_name`
 6. User logged into ServiceNow
