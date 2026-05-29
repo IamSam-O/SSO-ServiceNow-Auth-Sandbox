@@ -1,7 +1,7 @@
 services:
   cloudflared:
     build: ./cloudflared
-    env_file: ../.env
+    env_file: .env
     environment:
       TUNNEL_NAME: ${TUNNEL_NAME}
     volumes:

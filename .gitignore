@@ -1,9 +1,12 @@
 # Secrets
-cloudflare/.env
-ngrok/.env
+.env
+*.conf
+!*.conf.example
 
-# Cloudflare tunnel credentials (generated on first run)
+# Cloudflare tunnel credentials — generated on first run
 cloudflare/data/
+
+# Cloudflare routes — contains your domain
 
 # OS
 .DS_Store

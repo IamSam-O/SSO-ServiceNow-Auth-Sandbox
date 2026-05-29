@@ -1,0 +1,7 @@
+# routes.conf
+# Copy this file to routes.conf and set your subdomain.
+# Format: - hostname:docker_service_name:port
+# Only authentik-server needs a public route — one entry is all that's required.
+# Blank lines and lines starting with # are ignored.
+
+- authentik.yourdomain.com:authentik-server:9000
