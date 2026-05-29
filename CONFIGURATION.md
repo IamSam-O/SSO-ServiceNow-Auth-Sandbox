@@ -48,11 +48,13 @@ Complete these sections in order. Each section depends on the previous one.
   - [5.3 Fix ServiceNow SCIM Group ETL — id read-only issue](#53-fix-servicenow-scim-group-etl--id-read-only-issue)
   - [5.4 Configure policy bindings for SCIM sync](#54-configure-policy-bindings-for-scim-sync)
   - [5.5 Trigger initial sync](#55-trigger-initial-sync)
+  - [5.6 Configure akadmin in ServiceNow](#56-configure-akadmin-in-servicenow)
 - [Section 6 — Testing](#section-6--testing)
   - [6.1 Pre-flight checks](#61-pre-flight-checks)
-  - [6.2 Test SSO login](#62-test-sso-login)
-  - [6.3 Expected flow](#63-expected-flow)
-  - [6.4 Verify user record](#64-verify-user-record)
+  - [6.2 Initial test using the Test Connection button](#62-initial-test-using-the-test-connection-button)
+  - [6.3 Subsequent SSO testing](#63-subsequent-sso-testing)
+  - [6.4 Expected flow](#64-expected-flow)
+  - [6.5 Verify user record](#65-verify-user-record)
 - [Section 7 — LDIF Tool](#section-7--ldif-tool)
   - [7.1 JSON schema](#71-json-schema)
   - [7.2 Import behaviour](#72-import-behaviour)
@@ -704,6 +706,26 @@ with `ldap_uniq` set, and populates membership via the Authentik API.
 
 4. Save Binding
 
+5. Select **Bind existing policy/group/user** again
+6. Fill in:
+
+| Field | Value |
+|---|---|
+| User | `akadmin` |
+| Enabled | True |
+| Negate Result | False |
+| Order | 1 |
+| Timeout | 30 |
+| Failure Result | Don't Pass |
+
+7. Save Binding
+
+> **Why bind akadmin directly:** `akadmin` is the local Authentik admin account
+> and is not sourced from OpenLDAP, so it is not covered by the `LDAP Users - All`
+> policy. Binding it as a user directly ensures it always has access to the
+> ServiceNow application and can be used for local admin and recovery purposes
+> independent of the LDAP source.
+
 ### 3.5 Get the Authentik metadata URL
 
 ```
@@ -767,17 +789,6 @@ regardless of whether the SAML flow completes successfully.
 > provisioned users** — lock icon on the right. Add any groups whose roles you
 > want automatically applied to users on first login. This is not required for
 > basic SSO to function.
-
-> **Field maps cannot be configured yet.** The transform map data source does
-> not exist until after the first SSO login attempt. Return to this tab after
-> completing a successful test login and add:
-
-| SAML Attribute | ServiceNow Field |
-|---|---|
-| `user_name` | User Name |
-| `email` | Email |
-| `first_name` | First name |
-| `last_name` | Last name |
 
 ---
 
@@ -847,6 +858,43 @@ Restart the `scim-refresh` container to run the initial token refresh:
 docker compose restart scim-refresh
 ```
 
+### 5.6 Configure akadmin in ServiceNow
+
+Once the initial SCIM sync completes, `akadmin` will exist as a user record in
+ServiceNow. Before it can be used as a local admin account it needs roles
+assigned, a password set, and MFA configured.
+
+**Assign roles**
+
+1. **User Administration → Users** → search for `akadmin`
+2. Open the user record
+3. Scroll to the **Roles** tab and assign the following:
+
+| Role | Purpose |
+|---|---|
+| `admin` | Full system administration access |
+| `acl_admin` | Required to manage ACL rules and security policies |
+
+**Set a password**
+
+The `akadmin` record is synced from Authentik without a ServiceNow password.
+A password must be set before the account can log in locally:
+
+1. On the `akadmin` user record click **Set Password**
+2. Set a strong password and note it securely — this is your ServiceNow local
+   admin password, independent of the Authentik credentials
+
+**First login and MFA setup**
+
+1. Open an incognito window and navigate to your PDI login page
+2. Log in with `akadmin` and the password you just set
+3. ServiceNow will prompt you to change the password on first login
+4. After the password change, follow the prompts to set up MFA
+
+> Once MFA is configured, `akadmin` is your recovery account if SSO is
+> misconfigured or Authentik becomes unavailable. Keep the credentials stored
+> securely outside the lab environment.
+
 ---
 
 ## Section 6 — Testing
@@ -862,18 +910,27 @@ docker compose restart scim-refresh
 IdP record → **Encryption And Signing** tab — confirm Authentik's signing
 certificate is present.
 
-**c) Activate the IdP record**
+### 6.2 Initial test using the Test Connection button
 
-Use the **Test Connection** button on the IdP record — run this in an incognito
-window to avoid losing your admin session. Once the test completes successfully
-click **Activate**.
+The first SSO test must be done using the **Test Connection** button on the IdP
+record. This validates the SAML configuration and if successful enables the
+**Activate** button to make the IdP live.
+
+1. Open the IdP record in ServiceNow
+2. Open an **incognito window** before clicking Test Connection — testing in
+   your active admin session will redirect that session through the SAML flow
+3. Click **Test Connection** on the IdP record
+4. Log in with an LDAP user (e.g. `jane.doe` / `Password1!`) in the incognito window
+5. Once the test completes successfully, return to the IdP record and click **Activate**
 
 > The `Active` field is read-only. The Activate button is the only supported
-> method — it validates the configuration before putting the IdP into service.
+> method — it ensures the configuration has been validated before the IdP is
+> put into service.
 
-### 6.2 Test SSO login
+### 6.3 Subsequent SSO testing
 
-Always test in an **incognito/private browser window**.
+After the IdP is active, test a full SSO login via the login page or direct URL.
+Always use an **incognito/private browser window**.
 
 **Option A — Direct SSO URL**
 
@@ -890,7 +947,27 @@ https://devXXXXXX.service-now.com/login.do
 
 An **Authentik** button should appear on the login page.
 
-### 6.3 Expected flow
+### 6.3 Subsequent SSO testing
+
+After the IdP is active, subsequent tests can be done via the login page or
+direct URL. Always use an **incognito/private browser window**.
+
+**Option A — Direct SSO URL**
+
+Get the IdP `sys_id` from the URL when viewing the IdP record, then navigate to:
+```
+https://devXXXXXX.service-now.com/login_with_sso.do?glide_sso_id=<sys_id>
+```
+
+**Option B — Login page button**
+
+```
+https://devXXXXXX.service-now.com/login.do
+```
+
+An **Authentik** button should appear on the login page.
+
+### 6.4 Expected flow
 
 1. Browser redirects to Authentik login at your public URL
 2. Log in with an LDAP user (e.g. `jane.doe` / `Password1!`)
@@ -899,7 +976,7 @@ An **Authentik** button should appear on the login page.
 5. ServiceNow matches NameID against `user_name`
 6. User logged into ServiceNow
 
-### 6.4 Verify user record
+### 6.5 Verify user record
 
 **User Administration → Users** → search `jane.doe` — record should exist with
 `user_name`, `email`, `first_name`, `last_name` populated from SCIM.
