@@ -1,5 +1,6 @@
 # Secrets
-.env
+cloudflare/.env
+ngrok/.env
 
 # Cloudflare tunnel credentials (generated on first run)
 cloudflare/data/

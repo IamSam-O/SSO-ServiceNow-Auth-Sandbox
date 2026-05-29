@@ -9,46 +9,39 @@ publicly via ngrok so ServiceNow can reach it for SAML flows. No domain required
 
 - `sso-infrastructure` running — start it first so `sso-net` exists
 - A free ngrok account — register at [ngrok.com](https://ngrok.com)
-- Your auth token from the ngrok dashboard
+- Your auth token and static dev domain from the ngrok dashboard
+
+---
+
+## Static dev domain (free)
+
+Every ngrok account is automatically assigned a free static dev domain on
+`ngrok-free.app` (e.g. `abc123xyz.ngrok-free.app`). This domain is permanently
+assigned to your account and does not change between restarts — configure
+ServiceNow once and it stays valid.
+
+To find your domain: **ngrok dashboard → Universal Gateway → Domains**
 
 ---
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and paste your `NGROK_AUTHTOKEN`
-2. Start the tunnel:
+1. Copy `.env.example` to `.env`
+2. Set `NGROK_AUTHTOKEN` from the ngrok dashboard
+3. Set `NGROK_DOMAIN` to your static dev domain
+4. Start `sso-infrastructure` first, then start the tunnel:
    ```bash
    docker compose up -d
    ```
-3. Get the public URL:
-   ```bash
-   docker compose logs ngrok
-   ```
-
-Update the Authentik metadata URL in the ServiceNow IdP record whenever the
-URL changes (on every restart with the free tier).
 
 ---
 
-## Static domain (optional)
+## Interstitial page note
 
-On a paid ngrok plan, assign a static domain so the URL never changes:
-
-1. Reserve a domain in the ngrok dashboard
-2. Uncomment `NGROK_DOMAIN` in `.env`
-3. Update the `command` in `docker-compose.yml`:
-   ```yaml
-   command: http authentik-server:9000 --domain=${NGROK_DOMAIN} --log stdout
-   ```
-
----
-
-## Free tier limitations
-
-The public URL changes on every container restart. After each restart update
-the Authentik metadata URL in the ServiceNow IdP record and re-import metadata.
-
-Use the Cloudflare tunnel project instead if you own a domain.
+On the free plan, ngrok displays a browser warning page before forwarding
+traffic to your app. This only affects browser navigation — programmatic HTTP
+requests (such as ServiceNow fetching Authentik's SAML metadata URL) are not
+affected.
 
 ---
 
