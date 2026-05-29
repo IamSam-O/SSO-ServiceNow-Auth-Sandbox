@@ -9,6 +9,63 @@ Complete these sections in order. Each section depends on the previous one.
 
 ---
 
+## Contents
+
+- [Prerequisites](#prerequisites)
+  - [Accounts and services](#accounts-and-services)
+  - [Install ServiceNow plugins](#install-servicenow-plugins)
+  - [Generate a secret key](#generate-a-secret-key)
+  - [Configure sso-infrastructure](#configure-sso-infrastructure)
+  - [Start sso-infrastructure](#start-sso-infrastructure)
+- [Tunnel Setup — choose one](#tunnel-setup--choose-one)
+  - [Option A — ngrok](#option-a--ngrok)
+  - [Option B — Cloudflare Tunnel](#option-b--cloudflare-tunnel)
+- [Section 1 — Provision LDAP Users](#section-1--provision-ldap-users)
+  - [1.1 Create organisational units](#11-create-organisational-units)
+  - [1.2 Import users](#12-import-users)
+  - [1.3 Verify via phpLDAPadmin](#13-verify-via-phpldapadmin)
+- [Section 2 — Authentik Initial Setup](#section-2--authentik-initial-setup)
+  - [2.1 Initial setup and login](#21-initial-setup-and-login)
+  - [2.2 Create an API Token](#22-create-an-api-token)
+  - [2.3 Configure custom property mappings](#23-configure-custom-property-mappings)
+  - [2.4 Configure LDAP Source](#24-configure-ldap-source)
+  - [2.5 Sync groups and verify membership](#25-sync-groups-and-verify-membership)
+- [Section 3 — Authentik Application and SAML Provider](#section-3--authentik-application-and-saml-provider)
+  - [3.1 Create the application and SAML provider](#31-create-the-application-and-saml-provider)
+  - [3.2 Create the SCIM Provider](#32-create-the-scim-provider)
+  - [3.3 Assign the SCIM provider as a backchannel provider](#33-assign-the-scim-provider-as-a-backchannel-provider)
+  - [3.4 Bind the policy to the application](#34-bind-the-policy-to-the-application)
+  - [3.5 Get the Authentik metadata URL](#35-get-the-authentik-metadata-url)
+- [Section 4 — ServiceNow Multi-Provider SSO](#section-4--servicenow-multi-provider-sso)
+  - [4.1 Import Authentik metadata into ServiceNow](#41-import-authentik-metadata-into-servicenow)
+  - [4.2 Enable Multi-Provider SSO](#42-enable-multi-provider-sso)
+  - [4.3 Enable local recovery admin account](#43-enable-local-recovery-admin-account)
+  - [4.4 Configure the IdP record](#44-configure-the-idp-record)
+  - [4.5 Enable JIT provisioning](#45-enable-jit-provisioning)
+- [Section 5 — SCIM User Provisioning](#section-5--scim-user-provisioning)
+  - [5.1 Create the service account](#51-create-the-service-account)
+  - [5.2 Locate the SCIM API OAuth Application Registry](#52-locate-the-scim-api-oauth-application-registry)
+  - [5.3 Fix ServiceNow SCIM Group ETL — id read-only issue](#53-fix-servicenow-scim-group-etl--id-read-only-issue)
+  - [5.4 Configure policy bindings for SCIM sync](#54-configure-policy-bindings-for-scim-sync)
+  - [5.5 Trigger initial sync](#55-trigger-initial-sync)
+- [Section 6 — Testing](#section-6--testing)
+  - [6.1 Pre-flight checks](#61-pre-flight-checks)
+  - [6.2 Test SSO login](#62-test-sso-login)
+  - [6.3 Expected flow](#63-expected-flow)
+  - [6.4 Verify user record](#64-verify-user-record)
+- [Section 7 — LDIF Tool](#section-7--ldif-tool)
+  - [7.1 JSON schema](#71-json-schema)
+  - [7.2 Import behaviour](#72-import-behaviour)
+  - [7.3 Extending the schema](#73-extending-the-schema)
+- [Section 8 — Authentik Application Policy](#section-8--authentik-application-policy)
+- [Troubleshooting](#troubleshooting)
+  - [Infrastructure](#infrastructure)
+  - [ngrok tunnel](#ngrok-tunnel)
+  - [Cloudflare tunnel](#cloudflare-tunnel)
+- [Not for production](#not-for-production)
+
+---
+
 ## Prerequisites
 
 ### Accounts and services
@@ -19,6 +76,28 @@ Complete these sections in order. Each section depends on the previous one.
 - One of the following for public tunnel access:
   - A free ngrok account at [ngrok.com](https://ngrok.com) — no domain required
   - A Cloudflare account with a domain you own using Cloudflare DNS
+
+### Install ServiceNow plugins
+
+Plugin installs on a PDI can take several minutes. Start both installs now so
+they complete in the background while you work through the rest of the setup.
+
+Log into your PDI and navigate to **System Applications → All Available
+Applications** for each of the following:
+
+**Multi-Provider SSO**
+
+- Search: `Multiple Provider Single Sign-On`
+- Install: **Integration - Multiple Provider Single Sign-On Installer**
+
+**SCIM**
+
+- Search: `SCIM`
+- Install: **SCIM v2 - ServiceNow Cross-domain Identity Management**
+  (`com.snc.integration.scim2`)
+
+You do not need to wait for either install to finish before continuing. Return
+to Sections 4 and 5 once they have completed.
 
 ### Generate a secret key
 
@@ -71,6 +150,14 @@ starting — allow 30-60 seconds on first run.
 ---
 
 ## Tunnel Setup — choose one
+
+> **Running both tunnels simultaneously:** There is no technical limitation
+> preventing both tunnel containers from running at the same time — each
+> independently joins `sso-net` and forwards traffic to `authentik-server:9000`.
+> This can be useful for testing one tunnel option then the other without
+> tearing down the infrastructure. ServiceNow supports multiple IdP records,
+> so you can configure one for each tunnel URL and simply change which one is
+> set as the default to switch between them — no reconfiguration needed.
 
 ### Option A — ngrok
 
@@ -544,26 +631,80 @@ with `ldap_uniq` set, and populates membership via the Authentik API.
 | Sign responses | Off |
 | Sign logout requests | Off |
 | Sign logout response | Off |
-| Verification Certificate | Empty |
-| Encryption Certificate | Empty |
+| Verification Certificate | leave empty |
+| Encryption Certificate | leave empty |
 | Property mappings | no change |
 | NameID Property Mapping | `authentik default SAML Mapping: Username` |
-| NameID Property Mapping | Empty |
+
 > **NameID Property Mapping:** Sends `jane.doe` as the NameID which ServiceNow
 > matches against `user_name`. Must be set explicitly.
 
-**Create a Policy/User/Group Binding**
+### 3.2 Create the SCIM Provider
 
-### 3.2 Get the Authentik metadata URL
-Do the following for each Policy listed belowe
-> Select **Bind existing policy/group/user**
-> **Policy**
+1. **Applications → Providers → Create → SCIM Provider**
 
-| Policy | Enabled | Negate Result | Order | Timeout | Failure Result |
-|-------|-------|---------|---------------|-------|--------------|
-| LDAP Users - All | True | False | 0 | 30 | Don't Pass |
+| Field | Value |
+|---|---|
+| Name | `ServiceNow SCIM` |
+| URL | `https://devXXXXXX.service-now.com/api/now/scim` |
+| Token | enter a placeholder value for now — see note below |
 
-**Save Binding**
+> **Token field behaviour:** The token field cannot be left empty — Authentik
+> requires a value to save the provider. However, the field may not allow
+> pasting on first entry. Enter any random string as a placeholder to create
+> the provider, then edit it immediately after saving and you will be able to
+> paste the real token. The `scim-refresh` container will overwrite this value
+> automatically every 25 minutes once it is running, so the placeholder will
+> not persist.
+
+> **URL naming convention:** The SCIM endpoint URL above uses your PDI hostname
+> directly. If your instance URL follows a different pattern, update the hostname
+> to match — the path `/api/now/scim` remains constant.
+
+2. **User Property Mappings** — the selected mappings should be:
+
+| Mapping | Purpose |
+|---|---|
+| `authentik default SCIM Mapping: User` | Core user attributes — keep this |
+| `SCIM Email - work type` | Adds `type: work` to email — required by ServiceNow |
+| `SCIM title and department` | Sends job title and department |
+
+3. **Group Property Mappings** — the selected mappings should be:
+
+| Mapping | Purpose |
+|---|---|
+| `authentik default SCIM Mapping: Group` | Core group attributes — keep this |
+| `SCIM Group - displayName` | Sends group name and LDAP UUID as `externalId` |
+
+### 3.3 Assign the SCIM provider as a backchannel provider
+
+1. **Applications → ServiceNow → Edit**
+2. Under **Backchannel Providers** add `ServiceNow SCIM`
+3. Save
+
+> **Why backchannel:** A backchannel provider runs silently alongside the main
+> SAML flow. Assigning the SCIM provider here means Authentik will push user and
+> group changes to ServiceNow automatically whenever the LDAP sync runs, without
+> requiring a separate trigger.
+
+### 3.4 Bind the policy to the application
+
+1. **Applications → ServiceNow → Policy / Group Bindings**
+2. Select **Bind existing policy/group/user**
+3. Fill in:
+
+| Field | Value |
+|---|---|
+| Policy | `LDAP Users - All` |
+| Enabled | True |
+| Negate Result | False |
+| Order | 0 |
+| Timeout | 30 |
+| Failure Result | Don't Pass |
+
+4. Save Binding
+
+### 3.5 Get the Authentik metadata URL
 
 ```
 https://your-public-authentik-url/application/saml/service-now/metadata/
@@ -573,13 +714,11 @@ https://your-public-authentik-url/application/saml/service-now/metadata/
 
 ## Section 4 — ServiceNow Multi-Provider SSO
 
-### 4.1 Activate the plugin
+> **Plugin required:** The Multi-Provider SSO plugin must be installed before
+> proceeding. This was started in the Prerequisites section. Confirm the install
+> has completed before continuing.
 
-- **System Applications → All Available Applications**
-- Search: `Multiple Provider Single Sign-On`
-- Install: **Integration - Multiple Provider Single Sign-On Installer**
-
-### 4.2 Import Authentik metadata into ServiceNow
+### 4.1 Import Authentik metadata into ServiceNow
 
 1. **Multi-Provider SSO → Identity Providers → New**
 2. Select **Import Identity Provider Metadata**
@@ -588,13 +727,13 @@ https://your-public-authentik-url/application/saml/service-now/metadata/
    https://your-public-authentik-url/application/saml/service-now/metadata/
    ```
 
-### 4.3 Enable Multi-Provider SSO
+### 4.2 Enable Multi-Provider SSO
 
 **Multi-Provider SSO → Administration → Properties** — enable the system property.
 
 Without this, SSO will not activate regardless of IdP configuration.
 
-### 4.4 Enable local recovery admin account
+### 4.3 Enable local recovery admin account
 
 **Multi-Provider SSO → Account Recovery → Properties** — enable the local
 recovery admin account option and set the designated recovery admin user
@@ -603,7 +742,7 @@ recovery admin account option and set the designated recovery admin user
 Without this, SSO logins are silently redirected back to the login page
 regardless of whether the SAML flow completes successfully.
 
-### 4.5 Configure the IdP record
+### 4.4 Configure the IdP record
 
 | Field | Value |
 |---|---|
@@ -614,14 +753,20 @@ regardless of whether the SAML flow completes successfully.
 | Sign AuthnRequest | false |
 | Show as Login option | true |
 
-### 4.6 Enable JIT provisioning
+### 4.5 Enable JIT provisioning
 
 **User Provisioning** tab:
 
 | Field | Value |
 |---|---|
-| Auto-provisioning user | true |
-| Default role | `itil` |
+| Auto Provisioning User | true |
+| Update User Record Upon Each Login | true |
+
+> **Role assignment:** There is no default role field in the User Provisioning
+> tab. Roles are assigned to provisioned users via **User groups applied to
+> provisioned users** — lock icon on the right. Add any groups whose roles you
+> want automatically applied to users on first login. This is not required for
+> basic SSO to function.
 
 > **Field maps cannot be configured yet.** The transform map data source does
 > not exist until after the first SSO login attempt. Return to this tab after
@@ -638,14 +783,11 @@ regardless of whether the SAML flow completes successfully.
 
 ## Section 5 — SCIM User Provisioning
 
-### 5.1 Activate the SCIM plugin
+> **Plugin required:** The SCIM plugin (`com.snc.integration.scim2`) must be
+> installed before proceeding. This was started in the Prerequisites section.
+> Confirm the install has completed before continuing.
 
-**System Applications → All Available Applications** — install:
-```
-com.snc.integration.scim2
-```
-
-### 5.2 Create the service account
+### 5.1 Create the service account
 
 **User Administration → Users → New**
 
@@ -660,7 +802,7 @@ com.snc.integration.scim2
 
 Assign the **`admin`** role — this includes `scim_admin`.
 
-### 5.3 Locate the SCIM API OAuth Application Registry
+### 5.2 Locate the SCIM API OAuth Application Registry
 
 1. **System OAuth → Application Registry**
 2. Find and open the **`SCIM API`** record
@@ -671,7 +813,7 @@ Assign the **`admin`** role — this includes `scim_admin`.
 > Do not create a new OAuth record — use the one ServiceNow auto-creates when
 > the SCIM plugin is installed.
 
-### 5.4 Fix ServiceNow SCIM Group ETL — id read-only issue
+### 5.3 Fix ServiceNow SCIM Group ETL — id read-only issue
 
 Authentik includes `"id"` in PATCH request bodies. ServiceNow's default ETL
 maps this as read-only and returns a 400 on every group membership sync.
@@ -686,33 +828,16 @@ maps this as read-only and returns a 400 on every group membership sync.
 > in SCIM responses. Without it Authentik throws
 > `SCIM Response with missing or invalid 'id'`.
 
-### 5.5 Create the SCIM Provider in Authentik
-
-1. **Applications → Providers → Create → SCIM Provider**
-
-| Field | Value |
-|---|---|
-| Name | `ServiceNow SCIM` |
-| URL | `https://devXXXXXX.service-now.com/api/now/scim` |
-| Token | leave empty — `scim-refresh` manages this automatically |
-
-2. **User Property Mappings** — add `SCIM Email - work type` and
-   `SCIM title and department`. Remove the default email mapping.
-3. **Group Property Mappings** — add `SCIM Group - displayName`.
-   Remove `authentik default SCIM Mapping: Group`.
-4. Assign as a backchannel provider on the ServiceNow application:
-   **Applications → ServiceNow → Edit → Backchannel Providers** → add `ServiceNow SCIM`
-
-### 5.6 Configure policy bindings for SCIM sync
+### 5.4 Configure policy bindings for SCIM sync
 
 1. **Applications → ServiceNow → Policy / Group Bindings**
-2. Bind the `LDAP Users - All` expression policy created in Section 2.3
+2. Confirm the `LDAP Users - All` expression policy binding from Section 3.4 is present
 
 > **akadmin bypass:** `akadmin` is a superuser that bypasses all policy bindings.
 > Set `akadmin`'s email to `akadmin@authentik.local` to prevent 409 conflicts
 > on every full sync.
 
-### 5.7 Trigger initial sync
+### 5.5 Trigger initial sync
 
 **Applications → Providers → ServiceNow SCIM → sync icon**
 
@@ -821,17 +946,18 @@ docker compose up -d --build ldif-tool
 
 ## Section 8 — Authentik Application Policy
 
-### 8.1 Bind the policy to the application
-
-The `LDAP Users - All` expression policy was created in Section 2.3.
-
-1. **Applications → ServiceNow → Policy / Group Bindings**
-2. Remove any individual group bindings
-3. **Bind existing policy** → select `LDAP Users - All`
+The `LDAP Users - All` expression policy was created in Section 2.3 and bound
+to the ServiceNow application in Section 3.4.
 
 Any user synced from OpenLDAP has a path starting with
 `goauthentik.io/sources/ldap/openldap/` — the policy covers all of them
 automatically including members of any new groups added in future.
+
+If you need to add or adjust bindings:
+
+1. **Applications → ServiceNow → Policy / Group Bindings**
+2. Remove any individual group bindings
+3. **Bind existing policy** → select `LDAP Users - All`
 
 ---
 
@@ -846,7 +972,7 @@ automatically including members of any new groups added in future.
 | Groups missing after LDAP sync | Authentik `path` bug | Use LDIF Tool Sync Groups button then re-run LDAP sync |
 | SCIM 401 all users | Token empty or expired | `docker compose logs scim-refresh` |
 | SCIM 400 email error | Missing `type: work` | Add `SCIM Email - work type` mapping to SCIM provider |
-| SCIM 400 group id read-only | ETL `Id` coercion is `create` | Change coercion to `ignore` (Section 5.4) |
+| SCIM 400 group id read-only | ETL `Id` coercion is `create` | Change coercion to `ignore` (Section 5.3) |
 | SCIM 409 conflict | akadmin email conflict or stale records | Set akadmin email to `akadmin@authentik.local`, delete ServiceNow records, clear tracking tables, re-sync |
 | SCIM `missing or invalid id` | `Id → sys_id` removed from ETL | Add it back with coercion `ignore` |
 | SCIM 403 on Authentik API | Wrong token intent or `ak-*` account | Recreate token with Intent = API Token on a regular user |
