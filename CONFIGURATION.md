@@ -49,17 +49,21 @@ Complete these sections in order. Each section depends on the previous one.
   - [5.4 Configure policy bindings for SCIM sync](#54-configure-policy-bindings-for-scim-sync)
   - [5.5 Trigger initial sync](#55-trigger-initial-sync)
   - [5.6 Configure akadmin in ServiceNow](#56-configure-akadmin-in-servicenow)
-- [Section 6 — Testing](#section-6--testing)
-  - [6.1 Pre-flight checks](#61-pre-flight-checks)
-  - [6.2 Initial test using the Test Connection button](#62-initial-test-using-the-test-connection-button)
-  - [6.3 Subsequent SSO testing](#63-subsequent-sso-testing)
-  - [6.4 Expected flow](#64-expected-flow)
-  - [6.5 Verify user record](#65-verify-user-record)
-- [Section 7 — LDIF Tool](#section-7--ldif-tool)
-  - [7.1 JSON schema](#71-json-schema)
-  - [7.2 Import behaviour](#72-import-behaviour)
-  - [7.3 Extending the schema](#73-extending-the-schema)
-- [Section 8 — Authentik Application Policy](#section-8--authentik-application-policy)
+- [Section 6 — SSO Configuration](#section-6--sso-configuration)
+  - [6.1 Configure akadmin in ServiceNow](#61-configure-akadmin-in-servicenow)
+  - [6.2 First login and MFA setup](#62-first-login-and-mfa-setup)
+  - [6.3 Enable account recovery](#63-enable-account-recovery)
+  - [6.4 Enable Multi-Provider SSO](#64-enable-multi-provider-sso)
+- [Section 7 — Testing](#section-7--testing)
+  - [7.1 Initial test using the Test Connection button](#71-initial-test-using-the-test-connection-button)
+  - [7.2 Subsequent SSO testing](#72-subsequent-sso-testing)
+  - [7.3 Expected flow](#73-expected-flow)
+  - [7.4 Verify user record](#74-verify-user-record)
+- [Section 8 — LDIF Tool](#section-8--ldif-tool)
+  - [8.1 JSON schema](#81-json-schema)
+  - [8.2 Import behaviour](#82-import-behaviour)
+  - [8.3 Extending the schema](#83-extending-the-schema)
+- [Section 9 — Authentik Application Policy](#section-9--authentik-application-policy)
 - [Troubleshooting](#troubleshooting)
   - [Infrastructure](#infrastructure)
   - [ngrok tunnel](#ngrok-tunnel)
@@ -748,6 +752,9 @@ https://your-public-authentik-url/application/saml/service-now/metadata/
    ```
    https://your-public-authentik-url/application/saml/service-now/metadata/
    ```
+4. After the record is saved, scroll to the **Encryption And Signing** related
+   list and confirm the Authentik signing certificate is present. If it is
+   missing the metadata import did not bring it in — re-import before continuing.
 
 ### 4.2 Enable Multi-Provider SSO
 
@@ -858,11 +865,20 @@ Restart the `scim-refresh` container to run the initial token refresh:
 docker compose restart scim-refresh
 ```
 
-### 5.6 Configure akadmin in ServiceNow
+---
+
+## Section 6 — SSO Configuration
+
+This section must be completed while logged in as `akadmin` in ServiceNow
+before SSO is activated. Once SSO goes live, local logins are blocked except
+for ACR users — completing this section first ensures `akadmin` remains
+accessible as a recovery account.
+
+### 6.1 Configure akadmin in ServiceNow
 
 Once the initial SCIM sync completes, `akadmin` will exist as a user record in
 ServiceNow. Before it can be used as a local admin account it needs roles
-assigned, a password set, and MFA configured.
+assigned and a password set.
 
 **Assign roles**
 
@@ -884,53 +900,103 @@ A password must be set before the account can log in locally:
 2. Set a strong password and note it securely — this is your ServiceNow local
    admin password, independent of the Authentik credentials
 
-**First login and MFA setup**
+### 6.2 First login and MFA setup
+
+Before enabling account recovery, `akadmin` must have completed a first login
+so ServiceNow can register the account for ACR in the next step.
 
 1. Open an incognito window and navigate to your PDI login page
-2. Log in with `akadmin` and the password you just set
+2. Log in with `akadmin` and the password you set in section 6.1
 3. ServiceNow will prompt you to change the password on first login
 4. After the password change, follow the prompts to set up MFA
 
-> Once MFA is configured, `akadmin` is your recovery account if SSO is
-> misconfigured or Authentik becomes unavailable. Keep the credentials stored
-> securely outside the lab environment.
+> Keep the `akadmin` credentials stored securely outside the lab environment.
+
+### 6.3 Enable account recovery
+
+Account recovery (ACR) allows `akadmin` to log in locally even when SSO is
+active. This must be configured before enabling SSO — once SSO is live, local
+logins are blocked for all non-ACR users.
+
+> **You must be logged in as `akadmin` for this step.** The account recovery
+> setup links to your current session in Step 2. If you complete this as the
+> wrong user, that user becomes the ACR account instead.
+
+1. Navigate to **Multi-Provider SSO → Account Recovery → Properties**
+2. Check **Enable account recovery**
+3. Click the **here** link in Step 2 to set up account recovery for your
+   account — this registers `akadmin` as the ACR user
+4. Click **Save**
+
+**Disable the SSO enforcement system property**
+
+By default the system property `glide.sso.acr.enabled` blocks all local logins
+even when ACR is configured. This must be set to `false` to allow `akadmin` to
+log in locally.
+
+1. Search for `sys_properties.list` in the filter navigator
+2. Find and open the `glide.sso.acr.enabled` property
+3. Set the **Value** to `false`
+4. Save
+
+> With `glide.sso.acr.enabled` set to `false` and account recovery enabled,
+> `akadmin` can log in locally via the standard login page while all other
+> users are directed through SSO.
+
+### 6.4 Enable Multi-Provider SSO
+
+1. Navigate to **Multi-Provider SSO → Administration → Properties**
+2. Enable the **Enable multiple provider SSO** system property
+3. Save
+
+Without this, SSO will not activate regardless of how the IdP record is
+configured.
 
 ---
 
-## Section 6 — Testing
+## Section 7 — Testing
 
-### 6.1 Pre-flight checks
+> **Before testing:** Log out of Authentik completely. If an active Authentik
+> session exists when the SAML flow triggers, ServiceNow may be redirected using
+> that session rather than prompting for credentials, which skips the login step
+> and makes it difficult to verify the flow is working correctly.
 
-**a) Multi-Provider SSO enabled globally**
-
-**Multi-Provider SSO → Properties** — confirm SSO is enabled.
-
-**b) Signing certificate imported**
-
-IdP record → **Encryption And Signing** tab — confirm Authentik's signing
-certificate is present.
-
-### 6.2 Initial test using the Test Connection button
+### 7.1 Initial test using the Test Connection button
 
 The first SSO test must be done using the **Test Connection** button on the IdP
 record. This validates the SAML configuration and if successful enables the
 **Activate** button to make the IdP live.
 
-1. Open the IdP record in ServiceNow
-2. Open an **incognito window** before clicking Test Connection — testing in
+> **Which user to test with:** LDAP-imported users do not have roles or a
+> ServiceNow password — their LDAP password is not synced. For initial testing
+> use `akadmin`, which has roles assigned and a password set from Section 6.
+> If you want to test with an imported user, assign them roles in ServiceNow
+> first via **User Administration → Users**.
+
+1. Log out of Authentik
+2. Open the IdP record in ServiceNow
+3. Open an **incognito window** before clicking Test Connection — testing in
    your active admin session will redirect that session through the SAML flow
-3. Click **Test Connection** on the IdP record
-4. Log in with an LDAP user (e.g. `jane.doe` / `Password1!`) in the incognito window
-5. Once the test completes successfully, return to the IdP record and click **Activate**
+4. Click **Test Connection** on the IdP record
+5. Log in with `akadmin` (or an imported user with roles assigned) in the
+   incognito window
+6. Once the test completes successfully, return to the IdP record and click **Activate**
 
 > The `Active` field is read-only. The Activate button is the only supported
 > method — it ensures the configuration has been validated before the IdP is
 > put into service.
 
-### 6.3 Subsequent SSO testing
+### 7.2 Subsequent SSO testing
 
 After the IdP is active, test a full SSO login via the login page or direct URL.
-Always use an **incognito/private browser window**.
+Always use an **incognito/private browser window** and ensure you are logged out
+of Authentik first.
+
+> **Imported users and roles:** LDAP-imported users will authenticate
+> successfully via SSO but will land in ServiceNow with no roles unless they
+> have been assigned manually. Assign roles via **User Administration → Users**
+> before testing with a specific imported user if access beyond the default
+> self-service portal is needed.
 
 **Option A — Direct SSO URL**
 
@@ -947,27 +1013,7 @@ https://devXXXXXX.service-now.com/login.do
 
 An **Authentik** button should appear on the login page.
 
-### 6.3 Subsequent SSO testing
-
-After the IdP is active, subsequent tests can be done via the login page or
-direct URL. Always use an **incognito/private browser window**.
-
-**Option A — Direct SSO URL**
-
-Get the IdP `sys_id` from the URL when viewing the IdP record, then navigate to:
-```
-https://devXXXXXX.service-now.com/login_with_sso.do?glide_sso_id=<sys_id>
-```
-
-**Option B — Login page button**
-
-```
-https://devXXXXXX.service-now.com/login.do
-```
-
-An **Authentik** button should appear on the login page.
-
-### 6.4 Expected flow
+### 7.3 Expected flow
 
 1. Browser redirects to Authentik login at your public URL
 2. Log in with an LDAP user (e.g. `jane.doe` / `Password1!`)
@@ -976,29 +1022,29 @@ An **Authentik** button should appear on the login page.
 5. ServiceNow matches NameID against `user_name`
 6. User logged into ServiceNow
 
-### 6.5 Verify user record
+### 7.4 Verify user record
 
 **User Administration → Users** → search `jane.doe` — record should exist with
 `user_name`, `email`, `first_name`, `last_name` populated from SCIM.
 
 ---
 
-## Section 7 — LDIF Tool
+## Section 8 — LDIF Tool
 
-### 7.1 JSON schema
+### 8.1 JSON schema
 
 Upload a JSON array matching the fields in `sso-infrastructure/ldif-tool/schema.json`.
 Required fields: `uid`, `cn`, `givenname`, `sn`, `mail`, `userpassword`, `title`,
 `departmentnumber`. Fields present in JSON but absent from the schema are silently
 ignored. `null` values are treated as empty strings.
 
-### 7.2 Import behaviour
+### 8.2 Import behaviour
 
 The tool upserts — new entries are created, existing entries updated. Group
 membership is replaced with the current member list on each import. After a
 successful import the tool automatically runs Sync Groups to Authentik.
 
-### 7.3 Extending the schema
+### 8.3 Extending the schema
 
 Add an entry to `ldif-tool/schema.json`:
 
@@ -1021,7 +1067,7 @@ docker compose up -d --build ldif-tool
 
 ---
 
-## Section 8 — Authentik Application Policy
+## Section 9 — Authentik Application Policy
 
 The `LDAP Users - All` expression policy was created in Section 2.3 and bound
 to the ServiceNow application in Section 3.4.
@@ -1053,7 +1099,7 @@ If you need to add or adjust bindings:
 | SCIM 409 conflict | akadmin email conflict or stale records | Set akadmin email to `akadmin@authentik.local`, delete ServiceNow records, clear tracking tables, re-sync |
 | SCIM `missing or invalid id` | `Id → sys_id` removed from ETL | Add it back with coercion `ignore` |
 | SCIM 403 on Authentik API | Wrong token intent or `ak-*` account | Recreate token with Intent = API Token on a regular user |
-| SSO redirect never happens | IdP not active, missing cert, or plugin not enabled | Check Section 6.1 in order |
+| SSO redirect never happens | IdP not active, missing cert, or plugin not enabled | Verify cert in IdP related list, confirm SSO enabled in Section 6.4, check IdP is active |
 | SSO completes but redirects to login page | Multi-Provider SSO system property not enabled | **Multi-Provider SSO → Administration → Properties** |
 | SSO has no effect after login | Local recovery admin not configured | **Multi-Provider SSO → Account Recovery → Properties** |
 | `LDAPAttributeError: invalid attribute type objectSid` | Object uniqueness field or User membership attribute set to AD default | Change both to `entryUUID` and `uid` in LDAP source Additional settings |
