@@ -1,0 +1,7 @@
+version: 3
+
+endpoints:
+  - name: authentik
+    url: https://your-static-domain.ngrok-free.app
+    upstream:
+      url: http://authentik-server:9000

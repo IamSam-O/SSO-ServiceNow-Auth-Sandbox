@@ -39,10 +39,23 @@ GROUP_FIELD     = next((f["json_key"] for f in FIELDS if f.get("generates_groups
 
 def sync_groups_to_authentik():
     """Query OpenLDAP for groups and mirror them into Authentik with ldap_uniq set.
-    Mirrors the behaviour of create-ldap-groups.ps1.
+
+    Returns a result dict with:
+      - status: 'ok' | 'warning' | 'error'
+      - message: human-readable summary
+      - total, created, updated, errors: counts
     """
     if not AUTHENTIK_API_TOKEN:
-        return {"synced": False, "message": "AUTHENTIK_API_TOKEN not configured"}
+        return {
+            "status": "warning",
+            "message": "AUTHENTIK_API_TOKEN not configured — skipping Authentik sync. "
+                       "Create an API token in Authentik and add it to .env, then use "
+                       "the Sync Groups button to sync manually.",
+            "total": 0,
+            "created": 0,
+            "updated": 0,
+            "errors": 0,
+        }
 
     headers = {
         "Authorization": f"Bearer {AUTHENTIK_API_TOKEN}",
@@ -54,7 +67,14 @@ def sync_groups_to_authentik():
         server = Server(LDAP_HOST, port=LDAP_PORT, get_info=ALL)
         conn = Connection(server, user=LDAP_ADMIN_DN, password=LDAP_ADMIN_PW, auto_bind=True)
     except LDAPException as e:
-        return {"synced": False, "message": f"LDAP connection failed: {e}"}
+        return {
+            "status": "error",
+            "message": f"LDAP connection failed: {e}",
+            "total": 0,
+            "created": 0,
+            "updated": 0,
+            "errors": 0,
+        }
 
     conn.search(
         GROUPS_OU,
@@ -72,7 +92,14 @@ def sync_groups_to_authentik():
     conn.unbind()
 
     if not groups:
-        return {"synced": False, "message": "No groups found in LDAP"}
+        return {
+            "status": "warning",
+            "message": "No groups found in LDAP",
+            "total": 0,
+            "created": 0,
+            "updated": 0,
+            "errors": 0,
+        }
 
     # Build a uid → Authentik user ID lookup cache
     user_cache = {}
@@ -98,7 +125,6 @@ def sync_groups_to_authentik():
     error_details = []
 
     for group in groups:
-        # Resolve memberUid values (plain uids) → Authentik user IDs
         member_ids = []
         for uid in group.get("members", []):
             if uid in user_cache:
@@ -110,7 +136,6 @@ def sync_groups_to_authentik():
             "users": member_ids,
         }
         try:
-            # Try to find existing group by name
             search = requests.get(
                 f"{AUTHENTIK_URL}/api/v3/core/groups/?name={group['name']}",
                 headers=headers, timeout=10,
@@ -142,33 +167,41 @@ def sync_groups_to_authentik():
             errors += 1
             error_details.append(f"{group['name']}: {str(e)}")
 
-    msg = f"Groups synced to Authentik — {created} created, {updated} updated, {errors} errors"
+    total = len(groups)
+    if errors > 0 and created == 0 and updated == 0:
+        status = "error"
+    elif errors > 0:
+        status = "warning"
+    else:
+        status = "ok"
+
+    msg = f"{total} groups — {created} created, {updated} updated, {errors} errors"
     if error_details:
         msg += " | " + "; ".join(error_details[:3])
         if len(error_details) > 3:
             msg += f" (+{len(error_details) - 3} more)"
 
     return {
-        "synced": errors == 0 or created > 0 or updated > 0,
+        "status": status,
         "message": msg,
+        "total": total,
+        "created": created,
+        "updated": updated,
+        "errors": errors,
     }
 
 
 def parse_users(data):
-    """Parse and validate incoming JSON list of users.
-    Fields not present in the schema are silently ignored.
-    """
+    """Parse and validate incoming JSON list of users."""
     if not isinstance(data, list):
         raise ValueError("JSON must be an array of user objects.")
     known_keys = set(ATTR_MAP.keys()) | {"dn"}
     users = []
     for i, entry in enumerate(data):
-        # Normalise null → empty string for all values
         entry = {k: (v if v is not None else "") for k, v in entry.items()}
         for key in REQUIRED_FIELDS:
             if not str(entry.get(key, "")).strip():
                 raise ValueError(f"Entry {i} is missing required field '{key}'.")
-        # Strip any keys not in the schema — ignore silently
         filtered = {k: str(v).strip() for k, v in entry.items() if k in known_keys}
         users.append(filtered)
     return users
@@ -176,8 +209,6 @@ def parse_users(data):
 
 def build_ldif(users, include_groups=True):
     lines = []
-
-    # Collect unique values for the group-generating field
     departments = {}
     if include_groups and GROUP_FIELD:
         for user in users:
@@ -186,7 +217,6 @@ def build_ldif(users, include_groups=True):
             if dept:
                 departments.setdefault(dept, []).append(uid)
 
-    # User entries
     for user in users:
         uid = user.get("uid", "").strip()
         dn  = f"uid={uid},{USERS_OU}"
@@ -197,7 +227,7 @@ def build_ldif(users, include_groups=True):
             val = user.get(json_key, "").strip()
             if val:
                 lines.append(f"{ldap_attr}: {val}")
-        lines.append("")  # blank line between entries
+        lines.append("")
 
     if include_groups:
         for gid_offset, (dept, members) in enumerate(departments.items()):
@@ -216,6 +246,7 @@ def build_ldif(users, include_groups=True):
 
 
 def import_to_ldap(users, include_groups=True):
+    """Import users and groups into OpenLDAP. Returns LDAP results only."""
     results = []
     server = Server(LDAP_HOST, port=LDAP_PORT, get_info=ALL)
 
@@ -229,9 +260,7 @@ def import_to_ldap(users, include_groups=True):
     for user in users:
         uid  = user.get("uid", "").strip()
         dn   = f"uid={uid},{USERS_OU}"
-        attrs = {
-            "objectClass": OBJECT_CLASSES,
-        }
+        attrs = {"objectClass": OBJECT_CLASSES}
         for json_key, ldap_attr in ATTR_MAP.items():
             if json_key == "uid":
                 continue
@@ -249,7 +278,6 @@ def import_to_ldap(users, include_groups=True):
             if success:
                 results.append({"dn": dn, "status": "created"})
             elif conn.result.get("description") == "entryAlreadyExists":
-                # Entry exists — modify all non-uid attributes
                 changes = {
                     attr: [(MODIFY_REPLACE, [val])]
                     for attr, val in attrs.items()
@@ -344,18 +372,25 @@ def import_users():
         data  = json.load(file)
         users = parse_users(data)
         include_groups = request.form.get("include_groups", "true") == "true"
-        results = import_to_ldap(users, include_groups)
-        created = sum(1 for r in results if r["status"] == "created")
-        updated = sum(1 for r in results if r["status"] == "updated")
-        errors  = sum(1 for r in results if r["status"] == "error")
-        sync = sync_groups_to_authentik()
+
+        # Step 1 — LDAP import
+        ldap_results = import_to_ldap(users, include_groups)
+        ldap_created = sum(1 for r in ldap_results if r["status"] == "created")
+        ldap_updated = sum(1 for r in ldap_results if r["status"] == "updated")
+        ldap_errors  = sum(1 for r in ldap_results if r["status"] == "error")
+
+        # Step 2 — Authentik sync (independent of LDAP result)
+        authentik_sync = sync_groups_to_authentik()
+
         return jsonify({
-            "total":   len(results),
-            "created": created,
-            "updated": updated,
-            "errors":  errors,
-            "results": results,
-            "ldap_sync": sync,
+            "ldap": {
+                "total":   len(ldap_results),
+                "created": ldap_created,
+                "updated": ldap_updated,
+                "errors":  ldap_errors,
+                "results": ldap_results,
+            },
+            "authentik": authentik_sync,
         })
     except (ValueError, json.JSONDecodeError) as e:
         return jsonify({"error": str(e)}), 400

@@ -83,7 +83,7 @@ services:
       - sso-net
 
   openldap:
-    image: osixia/openldap:1.3.0
+    image: osixia/openldap:1.5.0
     env_file: .env
     environment:
       LDAP_ORGANISATION: ${LDAP_ORGANISATION}

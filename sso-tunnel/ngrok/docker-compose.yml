@@ -2,10 +2,12 @@ services:
   ngrok:
     image: ngrok/ngrok:latest
     env_file: .env
-    command: http authentik-server:9000 --url=${NGROK_DOMAIN} --log stdout
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    restart: unless-stopped
+    command: start authentik --config /etc/ngrok/ngrok.yml
+    volumes:
+      - ./ngrok.yml:/etc/ngrok/ngrok.yml
+    restart: "no"
     networks:
       - sso-net
 

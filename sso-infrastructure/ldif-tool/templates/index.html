@@ -14,6 +14,7 @@
     --accent:   #4f8ef7;
     --accent2:  #38d9a9;
     --danger:   #f7614f;
+    --warning:  #f4c430;
     --text:     #e2e8f0;
     --muted:    #64748b;
     --mono:     'IBM Plex Mono', monospace;
@@ -102,22 +103,9 @@
     position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
   }
 
-  .dropzone-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-
-  .dropzone-label {
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 6px;
-  }
-
-  .dropzone-hint {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
+  .dropzone-icon { font-size: 32px; margin-bottom: 12px; }
+  .dropzone-label { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .dropzone-hint { font-size: 12px; color: var(--muted); font-family: var(--mono); }
 
   .file-selected {
     display: none;
@@ -136,29 +124,15 @@
   .file-selected.visible { display: flex; }
 
   /* Toggle */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 20px;
-  }
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
 
-  .toggle {
-    position: relative;
-    width: 40px;
-    height: 22px;
-    flex-shrink: 0;
-  }
-
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
   .toggle input { opacity: 0; width: 0; height: 0; }
 
   .toggle-track {
-    position: absolute;
-    inset: 0;
-    background: var(--border);
-    border-radius: 11px;
-    cursor: pointer;
-    transition: background 0.2s;
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 11px;
+    cursor: pointer; transition: background 0.2s;
   }
 
   .toggle input:checked + .toggle-track { background: var(--accent2); }
@@ -168,8 +142,7 @@
     position: absolute;
     width: 16px; height: 16px;
     left: 3px; top: 3px;
-    background: white;
-    border-radius: 50%;
+    background: white; border-radius: 50%;
     transition: transform 0.2s;
   }
 
@@ -179,63 +152,41 @@
   .toggle-label small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
 
   /* Actions */
-  .actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
-  }
+  .actions { display: flex; gap: 12px; margin-top: 24px; }
 
   button {
-    flex: 1;
-    height: 44px;
-    border: none;
-    border-radius: 8px;
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    letter-spacing: 0.01em;
+    flex: 1; height: 44px; border: none; border-radius: 8px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.01em;
     transition: opacity 0.15s, transform 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
   }
 
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
+  .btn-primary { background: var(--accent); color: white; }
   .btn-primary:hover:not(:disabled) { opacity: 0.88; }
 
-  .btn-success {
-    background: var(--accent2);
-    color: #0f1117;
-  }
-
+  .btn-success { background: var(--accent2); color: #0f1117; }
   .btn-success:hover:not(:disabled) { opacity: 0.88; }
+
+  .btn-outline {
+    flex: 0 0 auto; background: transparent;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .btn-outline:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
 
   /* Preview table */
   .preview-section { display: none; }
   .preview-section.visible { display: block; }
 
-  .preview-meta {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 16px;
-  }
+  .preview-meta { display: flex; gap: 20px; margin-bottom: 16px; }
 
   .badge {
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.06);
-    color: var(--muted);
+    font-family: var(--mono); font-size: 11px;
+    padding: 4px 10px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--muted);
   }
 
   .badge.accent { background: rgba(79,142,247,0.12); color: var(--accent); }
@@ -243,135 +194,99 @@
 
   .table-wrap { overflow-x: auto; }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
 
   thead th {
-    text-align: left;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
+    text-align: left; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
   }
 
   tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: rgba(255,255,255,0.02); }
 
-  td {
-    padding: 10px 12px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text);
-    white-space: nowrap;
-  }
-
+  td { padding: 10px 12px; font-family: var(--mono); font-size: 12px; color: var(--text); white-space: nowrap; }
   td.uid-col { color: var(--accent); }
   td.dept-col { color: var(--accent2); }
 
-  /* Results */
+  /* Results sections */
   .results-section { display: none; }
   .results-section.visible { display: block; }
 
-  .result-summary {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+  .result-summary { display: flex; gap: 12px; margin-bottom: 20px; }
 
   .stat {
-    flex: 1;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
+    flex: 1; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; text-align: center;
   }
 
   .stat-num {
-    font-family: var(--mono);
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 1;
-    margin-bottom: 6px;
+    font-family: var(--mono); font-size: 28px; font-weight: 500;
+    line-height: 1; margin-bottom: 6px;
   }
 
-  .stat-num.green { color: var(--accent2); }
-  .stat-num.red   { color: var(--danger); }
-  .stat-num.blue  { color: var(--accent); }
+  .stat-num.green  { color: var(--accent2); }
+  .stat-num.red    { color: var(--danger); }
+  .stat-num.blue   { color: var(--accent); }
+  .stat-num.yellow { color: var(--warning); }
 
   .stat-label {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: var(--mono);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 11px; color: var(--muted);
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em;
   }
 
   .result-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 280px;
-    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 280px; overflow-y: auto;
   }
 
   .result-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 11px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 6px;
+    font-family: var(--mono); font-size: 11px;
     background: rgba(255,255,255,0.02);
   }
 
   .result-item.ok  { border-left: 3px solid var(--accent2); }
   .result-item.err { border-left: 3px solid var(--danger); }
 
-  .result-dn   { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; }
-  .result-msg  { color: var(--danger); font-size: 10px; }
+  .result-dn  { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .result-msg { color: var(--danger); font-size: 10px; }
   .result-tick { font-size: 13px; }
 
-  .btn-outline {
-    flex: 0 0 auto;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-  }
-
-  .btn-outline:hover:not(:disabled) {
-    border-color: var(--accent2);
-    color: var(--accent2);
-  }
-
-  .sync-result {
+  /* Authentik status banner — shown instead of stats when token missing */
+  .authentik-banner {
     display: none;
-    margin-top: 12px;
-    padding: 10px 14px;
-    border-radius: 6px;
+    padding: 14px 18px;
+    border-radius: 8px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .authentik-banner.visible { display: block; }
+  .authentik-banner.warning { background: rgba(244,196,48,0.08); border: 1px solid rgba(244,196,48,0.25); color: var(--warning); }
+  .authentik-banner.error   { background: rgba(247,97,79,0.08);  border: 1px solid rgba(247,97,79,0.25);  color: var(--danger); }
+
+  /* Sync card result */
+  .sync-result {
+    display: none; margin-top: 12px; padding: 10px 14px;
+    border-radius: 6px; font-family: var(--mono); font-size: 11px;
   }
 
   .sync-result.visible { display: block; }
-  .sync-result.ok  { background: rgba(56,217,169,0.08); border: 1px solid rgba(56,217,169,0.25); color: var(--accent2); }
-  .sync-result.err { background: rgba(247,97,79,0.08);  border: 1px solid rgba(247,97,79,0.25);  color: var(--danger); }
+  .sync-result.ok      { background: rgba(56,217,169,0.08);  border: 1px solid rgba(56,217,169,0.25);  color: var(--accent2); }
+  .sync-result.warning { background: rgba(244,196,48,0.08);  border: 1px solid rgba(244,196,48,0.25);  color: var(--warning); }
+  .sync-result.error   { background: rgba(247,97,79,0.08);   border: 1px solid rgba(247,97,79,0.25);   color: var(--danger); }
 
+  /* Spinner */
   .spinner {
     width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.2);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    display: none;
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.6s linear infinite; display: none;
   }
 
   .loading .spinner { display: block; }
@@ -380,14 +295,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .error-banner {
-    display: none;
-    margin-top: 16px;
-    padding: 12px 16px;
-    background: rgba(247,97,79,0.1);
-    border: 1px solid rgba(247,97,79,0.3);
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--danger);
+    display: none; margin-top: 16px; padding: 12px 16px;
+    background: rgba(247,97,79,0.1); border: 1px solid rgba(247,97,79,0.3);
+    border-radius: 8px; font-size: 13px; color: var(--danger);
   }
 
   .error-banner.visible { display: block; }
@@ -467,36 +377,45 @@
     </div>
   </div>
 
-  <!-- Results card -->
-  <div class="card results-section" id="resultsSection">
-    <div class="card-title">03 — Import Results</div>
-    <div class="result-summary" id="resultSummary"></div>
-    <div class="result-list" id="resultList"></div>
+  <!-- LDAP Results card -->
+  <div class="card results-section" id="ldapResultsSection">
+    <div class="card-title">03 — LDAP Import Results</div>
+    <div class="result-summary" id="ldapResultSummary"></div>
+    <div class="result-list" id="ldapResultList"></div>
+  </div>
+
+  <!-- Authentik Sync Results card -->
+  <div class="card results-section" id="authentikResultsSection">
+    <div class="card-title">04 — Authentik Sync Results</div>
+    <div class="authentik-banner" id="authentikBanner"></div>
+    <div class="result-summary" id="authentikResultSummary"></div>
   </div>
 
 </main>
 
 <script>
-  const dropzone     = document.getElementById('dropzone');
-  const fileInput    = document.getElementById('fileInput');
-  const fileSelected = document.getElementById('fileSelected');
-  const fileName     = document.getElementById('fileName');
-  const btnDownload  = document.getElementById('btnDownload');
-  const btnImport    = document.getElementById('btnImport');
-  const includeGroups= document.getElementById('includeGroups');
-  const previewSection = document.getElementById('previewSection');
-  const previewBody  = document.getElementById('previewBody');
-  const previewMeta  = document.getElementById('previewMeta');
-  const resultsSection = document.getElementById('resultsSection');
-  const resultSummary  = document.getElementById('resultSummary');
-  const resultList     = document.getElementById('resultList');
-  const errorBanner  = document.getElementById('errorBanner');
+  const dropzone      = document.getElementById('dropzone');
+  const fileInput     = document.getElementById('fileInput');
+  const fileSelected  = document.getElementById('fileSelected');
+  const fileName      = document.getElementById('fileName');
+  const btnDownload   = document.getElementById('btnDownload');
+  const btnImport     = document.getElementById('btnImport');
+  const includeGroups = document.getElementById('includeGroups');
+  const previewSection        = document.getElementById('previewSection');
+  const previewBody           = document.getElementById('previewBody');
+  const previewMeta           = document.getElementById('previewMeta');
+  const ldapResultsSection    = document.getElementById('ldapResultsSection');
+  const ldapResultSummary     = document.getElementById('ldapResultSummary');
+  const ldapResultList        = document.getElementById('ldapResultList');
+  const authentikResultsSection = document.getElementById('authentikResultsSection');
+  const authentikResultSummary  = document.getElementById('authentikResultSummary');
+  const authentikBanner         = document.getElementById('authentikBanner');
+  const errorBanner   = document.getElementById('errorBanner');
 
   let currentFile = null;
   let parsedUsers = [];
   let previewFields = [];
 
-  // Load schema on startup and build table headers
   fetch('/schema')
     .then(r => r.json())
     .then(schema => {
@@ -505,7 +424,6 @@
         '<tr>' + previewFields.map(f => `<th>${esc(f.label)}</th>`).join('') + '</tr>';
     });
 
-  // Drag and drop
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
   dropzone.addEventListener('drop', e => {
@@ -520,15 +438,13 @@
   });
 
   function handleFile(file) {
-    if (!file.name.endsWith('.json')) {
-      showError('Please upload a .json file.');
-      return;
-    }
+    if (!file.name.endsWith('.json')) { showError('Please upload a .json file.'); return; }
     currentFile = file;
     fileName.textContent = file.name;
     fileSelected.classList.add('visible');
     hideError();
-    resultsSection.classList.remove('visible');
+    ldapResultsSection.classList.remove('visible');
+    authentikResultsSection.classList.remove('visible');
 
     const reader = new FileReader();
     reader.onload = e => {
@@ -605,46 +521,50 @@
   }
 
   function renderResults(data) {
-    resultSummary.innerHTML = `
-      <div class="stat"><div class="stat-num blue">${data.total}</div><div class="stat-label">Total</div></div>
-      <div class="stat"><div class="stat-num green">${data.created}</div><div class="stat-label">Created</div></div>
-      <div class="stat"><div class="stat-num" style="color:#f4c430">${data.updated || 0}</div><div class="stat-label">Updated</div></div>
-      <div class="stat"><div class="stat-num red">${data.errors}</div><div class="stat-label">Errors</div></div>
+    // --- LDAP results ---
+    const ldap = data.ldap;
+    ldapResultSummary.innerHTML = `
+      <div class="stat"><div class="stat-num blue">${ldap.total}</div><div class="stat-label">Total</div></div>
+      <div class="stat"><div class="stat-num green">${ldap.created}</div><div class="stat-label">Created</div></div>
+      <div class="stat"><div class="stat-num yellow">${ldap.updated}</div><div class="stat-label">Updated</div></div>
+      <div class="stat"><div class="stat-num red">${ldap.errors}</div><div class="stat-label">Errors</div></div>
     `;
-    resultList.innerHTML = data.results.map(r => {
-      const ok  = r.status === 'created' || r.status === 'updated';
+    ldapResultList.innerHTML = ldap.results.map(r => {
+      const ok   = r.status === 'created' || r.status === 'updated';
       const tick = r.status === 'created' ? '✓' : r.status === 'updated' ? '↺' : '✗';
       return `
         <div class="result-item ${ok ? 'ok' : 'err'}">
           <span class="result-tick">${tick}</span>
           <span class="result-dn">${esc(r.dn)}</span>
-          ${r.status === 'updated' ? '<span style="color:#f4c430;font-size:10px">updated</span>' : ''}
+          ${r.status === 'updated' ? '<span style="color:var(--warning);font-size:10px">updated</span>' : ''}
           ${r.message ? `<span class="result-msg">${esc(r.message)}</span>` : ''}
         </div>`;
     }).join('');
-    // LDAP sync status
-    if (data.ldap_sync) {
-      const s = data.ldap_sync;
-      const syncEl = document.createElement('div');
-      syncEl.style.cssText = `margin-top:12px;padding:10px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;
-        background:${s.synced ? 'rgba(56,217,169,0.08)' : 'rgba(247,97,79,0.08)'};
-        border:1px solid ${s.synced ? 'rgba(56,217,169,0.25)' : 'rgba(247,97,79,0.25)'};
-        color:${s.synced ? 'var(--accent2)' : 'var(--danger)'}`;
-      syncEl.textContent = (s.synced ? '↺ ' : '⚠ ') + s.message;
-      document.getElementById('resultList').after(syncEl);
+    ldapResultsSection.classList.add('visible');
+
+    // --- Authentik sync results ---
+    const auth = data.authentik;
+    authentikBanner.classList.remove('visible', 'warning', 'error');
+    authentikResultSummary.innerHTML = '';
+
+    if (auth.status === 'warning' || auth.status === 'error') {
+      authentikBanner.textContent = auth.message;
+      authentikBanner.classList.add('visible', auth.status);
+    } else {
+      authentikResultSummary.innerHTML = `
+        <div class="stat"><div class="stat-num blue">${auth.total}</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num green">${auth.created}</div><div class="stat-label">Created</div></div>
+        <div class="stat"><div class="stat-num yellow">${auth.updated}</div><div class="stat-label">Updated</div></div>
+        <div class="stat"><div class="stat-num red">${auth.errors}</div><div class="stat-label">Errors</div></div>
+      `;
     }
-    resultsSection.classList.add('visible');
-    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    authentikResultsSection.classList.add('visible');
+
+    ldapResultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function showError(msg) {
-    errorBanner.textContent = msg;
-    errorBanner.classList.add('visible');
-  }
-
-  function hideError() {
-    errorBanner.classList.remove('visible');
-  }
+  function showError(msg) { errorBanner.textContent = msg; errorBanner.classList.add('visible'); }
+  function hideError()    { errorBanner.classList.remove('visible'); }
 
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -654,19 +574,19 @@
   btnImport.addEventListener('click',   () => submitForm('/import'));
 
   document.getElementById('btnSync').addEventListener('click', async () => {
-    const btn = document.getElementById('btnSync');
+    const btn      = document.getElementById('btnSync');
     const resultEl = document.getElementById('syncResult');
     btn.classList.add('loading');
     btn.disabled = true;
-    resultEl.classList.remove('visible', 'ok', 'err');
+    resultEl.classList.remove('visible', 'ok', 'warning', 'error');
     try {
-      const res = await fetch('/sync', { method: 'POST' });
+      const res  = await fetch('/sync', { method: 'POST' });
       const data = await res.json();
-      resultEl.textContent = (data.synced ? '↺ ' : '⚠ ') + data.message;
-      resultEl.classList.add('visible', data.synced ? 'ok' : 'err');
+      resultEl.textContent = (data.status === 'ok' ? '↺ ' : '⚠ ') + data.message;
+      resultEl.classList.add('visible', data.status);
     } catch (err) {
       resultEl.textContent = '⚠ Request failed: ' + err.message;
-      resultEl.classList.add('visible', 'err');
+      resultEl.classList.add('visible', 'error');
     } finally {
       btn.classList.remove('loading');
       btn.disabled = false;

@@ -1,8 +1,10 @@
 # Secrets
-sso-infrastructure/.env
-sso-tunnel/cloudflare/.env
-sso-tunnel/ngrok/.env
+!.gitkeep
 
+*.env
+sso-tunnel/ngrok/.env
+sso-tunnel/ngrok/ngrok.yml
+sso-infrastructure/data
 # Cloudflare tunnel credentials — generated on first run
 sso-tunnel/cloudflare/data/
 
@@ -16,7 +18,6 @@ sso-tunnel/cloudflare/routes.conf
 .DS_Store
 Thumbs.db
 desktop.ini
-
 # Editors
 .vscode/
 .idea/
