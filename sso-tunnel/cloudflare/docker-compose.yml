@@ -1,0 +1,17 @@
+services:
+  cloudflared:
+    build: ./cloudflared
+    env_file: ../.env
+    environment:
+      TUNNEL_NAME: ${TUNNEL_NAME}
+    volumes:
+      - ./data/cloudflared:/data
+      - ./routes.conf:/etc/cloudflared/routes.conf
+    restart: unless-stopped
+    networks:
+      - sso-net
+
+networks:
+  sso-net:
+    external: true
+    name: sso-net

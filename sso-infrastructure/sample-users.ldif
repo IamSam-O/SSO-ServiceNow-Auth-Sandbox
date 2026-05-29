@@ -1,0 +1,91 @@
+# sample-users.ldif
+# Replace dc=yourdomain,dc=com with your actual base DN before importing.
+#
+# Import with:
+#   docker compose cp sample-users.ldif openldap:/tmp/sample-users.ldif
+#   docker compose exec openldap ldapadd -x \
+#     -D "cn=admin,dc=yourdomain,dc=com" \
+#     -w your_ldap_admin_password \
+#     -f /tmp/sample-users.ldif
+
+# --- Organisational units ---
+
+dn: ou=users,dc=yourdomain,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+
+dn: ou=groups,dc=yourdomain,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+# --- Users ---
+
+dn: uid=jane.doe,ou=users,dc=yourdomain,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: jane.doe
+cn: Jane Doe
+givenName: Jane
+sn: Doe
+mail: jane.doe@yourdomain.com
+userPassword: Password1!
+title: IT Manager
+departmentNumber: it
+telephoneNumber: +1-555-0101
+
+dn: uid=john.smith,ou=users,dc=yourdomain,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: john.smith
+cn: John Smith
+givenName: John
+sn: Smith
+mail: john.smith@yourdomain.com
+userPassword: Password1!
+title: HR Coordinator
+departmentNumber: hr
+telephoneNumber: +1-555-0102
+
+dn: uid=alex.jones,ou=users,dc=yourdomain,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: alex.jones
+cn: Alex Jones
+givenName: Alex
+sn: Jones
+mail: alex.jones@yourdomain.com
+userPassword: Password1!
+title: Financial Analyst
+departmentNumber: finance
+telephoneNumber: +1-555-0103
+
+# --- Groups (posixGroup, required for Authentik group membership sync) ---
+
+dn: cn=it,ou=groups,dc=yourdomain,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: it
+gidNumber: 10000
+memberUid: jane.doe
+
+dn: cn=hr,ou=groups,dc=yourdomain,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: hr
+gidNumber: 10001
+memberUid: john.smith
+
+dn: cn=finance,ou=groups,dc=yourdomain,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: finance
+gidNumber: 10002
+memberUid: alex.jones

@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Cloudflare tunnel credentials (generated on first run)
+cloudflare/data/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~

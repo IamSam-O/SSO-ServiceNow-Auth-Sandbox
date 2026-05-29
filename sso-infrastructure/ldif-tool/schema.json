@@ -1,0 +1,131 @@
+{
+  "object_classes": [
+    "inetOrgPerson",
+    "organizationalPerson",
+    "person",
+    "top"
+  ],
+  "fields": [
+    {
+      "json_key": "uid",
+      "ldap_attr": "uid",
+      "label": "Username",
+      "group": "identity",
+      "required": true,
+      "preview": true
+    },
+    {
+      "json_key": "cn",
+      "ldap_attr": "cn",
+      "label": "Full Name",
+      "group": "identity",
+      "required": true,
+      "preview": true
+    },
+    {
+      "json_key": "givenname",
+      "ldap_attr": "givenName",
+      "label": "First Name",
+      "group": "identity",
+      "required": true,
+      "preview": false
+    },
+    {
+      "json_key": "sn",
+      "ldap_attr": "sn",
+      "label": "Last Name",
+      "group": "identity",
+      "required": true,
+      "preview": false
+    },
+    {
+      "json_key": "mail",
+      "ldap_attr": "mail",
+      "label": "Email",
+      "group": "identity",
+      "required": true,
+      "preview": true
+    },
+    {
+      "json_key": "userpassword",
+      "ldap_attr": "userPassword",
+      "label": "Password",
+      "group": "identity",
+      "required": true,
+      "preview": false
+    },
+    {
+      "json_key": "title",
+      "ldap_attr": "title",
+      "label": "Job Title",
+      "group": "job",
+      "required": true,
+      "preview": true
+    },
+    {
+      "json_key": "departmentnumber",
+      "ldap_attr": "departmentNumber",
+      "label": "Department",
+      "group": "job",
+      "required": true,
+      "generates_groups": true,
+      "preview": true
+    },
+    {
+      "json_key": "telephonenumber",
+      "ldap_attr": "telephoneNumber",
+      "label": "Phone Number",
+      "group": "job",
+      "required": false,
+      "preview": false
+    },
+    {
+      "json_key": "employeetype",
+      "ldap_attr": "employeeType",
+      "label": "Employee Type",
+      "group": "job",
+      "required": false,
+      "preview": false
+    },
+    {
+      "json_key": "company",
+      "ldap_attr": "o",
+      "label": "Company",
+      "group": "company",
+      "required": false,
+      "preview": true
+    },
+    {
+      "json_key": "street",
+      "ldap_attr": "street",
+      "label": "Street Address",
+      "group": "address",
+      "required": false,
+      "preview": false
+    },
+    {
+      "json_key": "city",
+      "ldap_attr": "l",
+      "label": "City",
+      "group": "address",
+      "required": false,
+      "preview": true
+    },
+    {
+      "json_key": "state",
+      "ldap_attr": "st",
+      "label": "State / Province",
+      "group": "address",
+      "required": false,
+      "preview": false
+    },
+    {
+      "json_key": "postalcode",
+      "ldap_attr": "postalCode",
+      "label": "Postal Code",
+      "group": "address",
+      "required": false,
+      "preview": false
+    }
+  ]
+}

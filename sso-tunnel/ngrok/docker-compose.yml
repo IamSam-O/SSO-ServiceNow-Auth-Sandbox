@@ -1,0 +1,15 @@
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    env_file: ../.env
+    command: http authentik-server:9000 --log stdout
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    restart: unless-stopped
+    networks:
+      - sso-net
+
+networks:
+  sso-net:
+    external: true
+    name: sso-net
